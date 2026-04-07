@@ -126,3 +126,33 @@ contract aliena88 {
     }
 
     function setRelayer(address next) external onlyOwner {
+        if (next == address(0)) revert A88_BadAddr();
+        relayer = next;
+    }
+
+    // --- Spooling ---
+
+    /// @notice Writes a digest into a channel; receipt prevents duplicates.
+    /// @dev Anyone can spool, but muted channels are blocked.
+    function spool(bytes32 channel, bytes32 digest, bytes8 tag, bytes32 receipt) external whenActive {
+        if (channel == bytes32(0) || digest == bytes32(0) || receipt == bytes32(0)) revert A88_Zero();
+        if (mutedChannel[channel]) revert A88_Unauthorized();
+        if (usedReceipt[receipt]) revert A88_Dupe();
+
+        usedReceipt[receipt] = true;
+
+        unchecked {
+            seq += 1;
+        }
+
+        // Make digest domain-bound and collision-resistant across channels.
+        bytes32 out = keccak256(
+            abi.encodePacked(_DOMAIN, block.chainid, address(this), channel, msg.sender, digest, receipt, seq)
+        );
+
+        rolling = keccak256(abi.encodePacked(rolling, channel, out, seq));
+        emit A88_Spool(channel, msg.sender, out, seq, uint64(block.timestamp), tag);
+    }
+
+
+    }
