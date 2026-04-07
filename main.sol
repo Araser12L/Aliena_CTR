@@ -94,3 +94,35 @@ contract aliena88 {
         if (paused == on) revert A88_Same();
         paused = on;
         emit A88_PauseSet(on);
+    }
+
+    function setChannelMuted(bytes32 channel, bool muted) external onlyGuardian {
+        if (channel == bytes32(0)) revert A88_Zero();
+        if (mutedChannel[channel] == muted) revert A88_Same();
+        mutedChannel[channel] = muted;
+        emit A88_ChannelMuted(channel, muted);
+    }
+
+    function proposeOwner(address next) external onlyOwner {
+        if (next == address(0)) revert A88_BadAddr();
+        pendingOwner = next;
+        emit A88_OwnerProposed(owner, next);
+    }
+
+    function acceptOwner() external {
+        address p = pendingOwner;
+        if (msg.sender != p || p == address(0)) revert A88_Unauthorized();
+        address old = owner;
+        owner = p;
+        pendingOwner = address(0);
+        emit A88_OwnerAccepted(old, p);
+    }
+
+    function setGuardian(address next) external onlyOwner {
+        if (next == address(0)) revert A88_BadAddr();
+        address old = guardian;
+        guardian = next;
+        emit A88_GuardianSet(old, next);
+    }
+
+    function setRelayer(address next) external onlyOwner {
