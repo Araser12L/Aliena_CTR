@@ -62,3 +62,35 @@ contract aliena88 {
     }
 
     modifier whenActive() {
+        if (paused) revert A88_Paused();
+        _;
+    }
+
+    modifier nonReentrant() {
+        if (_lock == 1) revert A88_Reentry();
+        _lock = 1;
+        _;
+        _lock = 0;
+    }
+
+    constructor() {
+        GUARDIAN_BOOT = 0x827bbAa7606fa8eC618A65E4285bA212da486032;
+        RELAYER_BOOT = 0x4f2aABa5057400DC9d9808d276d88d09F10Ff0f2;
+
+        owner = msg.sender;
+        pendingOwner = address(0);
+
+        guardian = GUARDIAN_BOOT;
+        relayer = RELAYER_BOOT;
+
+        paused = false;
+        seq = 0;
+        rolling = keccak256(abi.encodePacked(_DOMAIN, block.chainid, address(this), owner, GUARDIAN_BOOT));
+    }
+
+    // --- Controls ---
+
+    function setPaused(bool on) external onlyGuardian {
+        if (paused == on) revert A88_Same();
+        paused = on;
+        emit A88_PauseSet(on);
